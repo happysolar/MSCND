@@ -38,18 +38,19 @@ a.rOP.2 <- function(p, u = 1/4, l = 1/2)
     return(abs(rOP-r/n)/sqrt(rOP*(1-rOP)/n))
 }
 
-a.rOP.3 <- function(p, u = 1/4, l = 1/2)
-{
-    n <- length(p)
-    pp <- sort(p)
-    li <- floor(n * (1 - l))
-    ui <- ceiling(n * (1 - u))
-    slopes <- (1 - pp[li:ui])/(n + 1 - (li:ui))
-    rs <- ceiling(n + 1 - 1/slopes)
-    r <- max(c(rs, 1))
-    rOP <- pp[r]
-    return(abs(rOP-r/n)/sqrt(rOP*(1-rOP)/n))
-}
+
+##a.rOP.3 <- function(p, u = 1/4, l = 1/2)
+##{
+##    n <- length(p)
+##    pp <- sort(p)
+##    li <- floor(n * (1 - l))
+##    ui <- ceiling(n * (1 - u))
+##    slopes <- (1 - pp[li:ui])/(n + 1 - (li:ui))
+##    rs <- ceiling(n + 1 - 1/slopes)
+##    r <- max(c(rs, 1))
+##    rOP <- pp[r]
+##    return(abs(rOP-r/n)/sqrt(rOP*(1-rOP)/n))
+##}
 
 min.error <- function(label, stat, higher = FALSE) {
     if(higher == FALSE) stat <- -stat
