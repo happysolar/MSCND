@@ -70,7 +70,7 @@ min.error <- function(label, stat, higher = FALSE) {
     return(err)
 }
 
-
+### Find the minimum Type I error + Type II error
 min.error.2 <- function(label, stat, higher = FALSE) {
     if(higher == FALSE) stat <- -stat
     or <- order(stat)
