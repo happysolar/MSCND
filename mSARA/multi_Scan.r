@@ -60,3 +60,18 @@ estimate.sd <- function(x, h = 10) {
   return(sds)
 }
 
+
+
+## Multiple U kernel starts here
+multi.scanU <- function(x, l, sd.est) {
+  T <- ncol(x)
+  N <- nrow(x)
+  res <- matrix(NA, N, T - l + 1)
+  for(i in 1:N) {
+    sums <- cumsum(c(0, x[i, ]))
+    res[i, ] <- sums[(1 + l):(T + 1)] - sums[1:(T - l + 1)]
+  }
+  means <- rowMeans(x)
+  res <- (res - means * l)/sd.est/sqrt(l * (1 - l/T))
+  return(res)
+}
