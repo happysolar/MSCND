@@ -26,7 +26,7 @@ zmat.pval <- function(x, sd.est = 1)
     if(is.vector(x)) x <- matrix(x, nrow = 1)
     N <- nrow(x)
     T <- ncol(x)
-    p <- pnorm(abs(x), mean = 0, sd = sd.est, lower.tail = FALSE)
+    p <- 2 * pnorm(abs(x), mean = 0, sd = sd.est, lower.tail = FALSE)
 }
 
 ## Test llce.pval
@@ -75,3 +75,12 @@ multi.scanU <- function(x, l, sd.est) {
   res <- (res - means * l)/sd.est/sqrt(l * (1 - l/T))
   return(res)
 }
+
+higher.criticism <- function(p)
+{
+    n <- length(p)
+    pp <- sort(p)
+    HC <- ((1:n)/n - pp)/sqrt(pp * (1 - pp)) * sqrt(n)
+    return(max(abs(HC)))
+}
+
