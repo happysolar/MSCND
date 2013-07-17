@@ -86,3 +86,38 @@ for(i in 1:22) {
     }
     save(data.detrend, probe, file = paste("../detrend/chr_", i, "_detrend.rdata", sep = ""))
 }
+
+##################
+#### Analysis ####
+##################
+
+for (i in 1:22) {
+    load(file = paste("../detrend/chr_", i, "_detrend.rdata", sep = ""))
+    N <- nrow(data.detrend)
+    T <- ncol(data.detrend)
+    sd.est <- estimate.sd(data.detrend)
+    hh <- c(10, 20, 30)
+    D.HC <- matrix(0, nrow=3, ncol=T)
+    D.Sum <- matrix(0, nrow=3, ncol=T)
+    D.WSum <- matrix(0, nrow=3, ncol=T)
+    for (j in 1:3){
+        Ds <- multi.llce(data.detrend, hh[j], sd.est)
+        p.Ds <- zmat.pval(Ds)
+        D.HC[j, ] <- higher.criticism(p.Ds, alpha0=4)
+        D.Sum[j, ] <- weighted.sum(Ds)
+        D.WSum[j, ] <- weighted.sum(Ds, p0=0.01)
+    }
+    U.HC <- list()
+    U.Sum <- list()
+    U.WSum <- list()
+    L <- 50
+    ss <- multi.cumsum(data.detrend)
+    for (ll in 1:L) {
+        Us <- multi.scanU.2(ss, ll, sd.est)
+        p.Us <- zmat.pval(Us)
+        U.HC[[ll]] <- higher.criticism(p.Us, alpha0=4)
+        U.Sum[[ll]] <- weighted.sum(Us)
+        U.WSum[[ll]] <- weighted.sum(Us, p0=0.01)
+    }
+    save(D.HC, D.Sum, D.WSum, U.HC, U.Sum, U.WSum, file = paste("scan_results/chr_", i, "_scan_results.rdata", sep = ""))
+}

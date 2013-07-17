@@ -1,5 +1,5 @@
 ## load the previous SaRa program code
-dyn.load("diagnosticValue.so")
+dyn.load("diagnosticValue64.dll")
 source("llce.r")
 
 ## Multi-SaRa starts here
@@ -55,11 +55,10 @@ estimateSigma <- function(x, h = 10) {
   return(sqrt(var0))
 }
 
-estimate.sd <- function(x, h = 10) {
-  sds <- apply(x, 1, estimateSigma)
+estimate.sd <- function(x, h = 20) {
+  sds <- apply(x, 1, estimateSigma, h = h)
   return(sds)
 }
-
 
 
 ## Multiple U kernel starts here
@@ -76,11 +75,50 @@ multi.scanU <- function(x, l, sd.est) {
   return(res)
 }
 
-higher.criticism <- function(p)
-{
-    n <- length(p)
-    pp <- sort(p)
-    HC <- ((1:n)/n - pp)/sqrt(pp * (1 - pp)) * sqrt(n)
-    return(max(abs(HC)))
+multi.cumsum <- function(x){
+  T <- ncol(x)
+  N <- nrow(x)
+  sums1 <- matrix(nrow = N, ncol = T)
+  for(i in 1:N) {
+    sums1[i, ] <- cumsum(x[i, ])
+  }
+  sums <- cbind(0, sums1) 
+  return(sums)
 }
+
+multi.scanU.2 <- function(sums, l, sd.est, means = NULL) {
+  T <- ncol(sums) - 1
+  N <- nrow(sums)
+  local.sums <- sums[, (l + 1):(T + 1)] - sums[, 1:(T - l + 1)]
+  if (is.null(means)) means <- sums[, T + 1]/T
+  res <- (local.sums - means * l)/sd.est/sqrt(l * (1 - l/T))
+  return(res)
+}
+
+
+## Higher Criticism ##
+higher.criticism <- function(p,alpha0)
+{
+  N <- nrow(p)
+  T <- ncol(p)
+  HC <- rep(0, T)
+  for (i in 1:T) {
+    pp <- sort(p[, i])
+    W <- ((1:N)/N - pp)/sqrt(pp * (1 - pp)) * sqrt(N)
+    HC[i] <- max(W[alpha0:floor(n/2)])
+  }
+  return(HC)
+}
+
+
+## Weighted sum of squared statistics ##
+weighted.sum <- function (U, p0 = 1){
+  U.dim1 <- dim(U)[1]
+  U.dim2 <- dim(U)[2]
+  U.squared <- U^2
+  weights <- exp(U.squared/2)/((1 - p0)/p0 + exp(U.squared/2))
+  res <- colSums(weights * U.squared/2)
+  return(res)
+}
+
 
