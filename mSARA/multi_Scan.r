@@ -1,6 +1,6 @@
 ## load the previous SaRa program code
-dyn.load("diagnosticValue64.dll")
-source("llce.r")
+#dyn.load("diagnosticValue64.dll")
+#source("llce.r")
 
 ## Multi-SaRa starts here
 multi.llce <- function(x, h, sd.est)
@@ -18,8 +18,8 @@ multi.llce <- function(x, h, sd.est)
 ## Test multi.llce
 ##xx <- matrix(rnorm(10000 * 2000), 2000, 10000)
 ##system.time(stat.xx <- multi.llce(xx, 10))
-##   user  system elapsed 
-##  4.062   0.398   4.459 
+##   user  system elapsed
+##  4.062   0.398   4.459
 
 zmat.pval <- function(x, sd.est = 1)
 {
@@ -55,8 +55,15 @@ estimateSigma <- function(x, h = 10) {
   return(sqrt(var0))
 }
 
-estimate.sd <- function(x, h = 20) {
-  sds <- apply(x, 1, estimateSigma, h = h)
+
+
+##estimate.sd <- function(x, h = 20) {
+##  sds <- apply(x, 1, estimateSigma, h = h)
+##  return(sds)
+##}
+
+estimate.sd <- function(x) {
+  sds <- apply(x, 1, sd)
   return(sds)
 }
 
@@ -78,11 +85,11 @@ multi.scanU <- function(x, l, sd.est) {
 multi.cumsum <- function(x){
   T <- ncol(x)
   N <- nrow(x)
-  sums1 <- matrix(nrow = N, ncol = T)
+  sums1 <- matrix(0, nrow = N, ncol = T)
   for(i in 1:N) {
     sums1[i, ] <- cumsum(x[i, ])
   }
-  sums <- cbind(0, sums1) 
+  sums <- cbind(0, sums1)
   return(sums)
 }
 
@@ -105,7 +112,7 @@ higher.criticism <- function(p,alpha0)
   for (i in 1:T) {
     pp <- sort(p[, i])
     W <- ((1:N)/N - pp)/sqrt(pp * (1 - pp)) * sqrt(N)
-    HC[i] <- max(W[alpha0:floor(n/2)])
+    HC[i] <- max(W[alpha0:floor(N/2)])
   }
   return(HC)
 }
@@ -119,6 +126,26 @@ weighted.sum <- function (U, p0 = 1){
   weights <- exp(U.squared/2)/((1 - p0)/p0 + exp(U.squared/2))
   res <- colSums(weights * U.squared/2)
   return(res)
+}
+
+## My function to estimate the trend in data ##
+mytrend <- function(x, h = 100) {
+  T <- length(x)
+  sums <- cumsum(c(rep(0, h + 1), x, rep(0, h)))
+  sum.loc <- sums[(1:T) + 2 * h + 1] - sums[1:T]
+  ns <- c(h + (1:h), rep(2 * h + 1, T - (2 * h)), h + (h:1))
+  xbar <- sum.loc/ns
+  return(xbar)
+}
+
+detrend <- function(x, ...) {
+    N <- nrow(x)
+    T <- ncol(x)
+    x.detrend <- matrix(0, N, T)
+    for(i in 1:N) {
+        x.detrend[i, ] <- x[i, ] - mytrend(x[i, ], ...)
+    }
+    return(x.detrend)
 }
 
 
