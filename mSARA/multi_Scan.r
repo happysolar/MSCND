@@ -149,3 +149,73 @@ detrend <- function(x, ...) {
 }
 
 
+## function for thresholding the multi-sample U scan statistic
+thres.U <- function(x, th) {
+    wmax <- length(x)
+    for(i in 1:wmax) {
+        names(x[[i]]) <- 1:length(x[[i]])
+        x[[i]] <- na.omit(x[[i]])
+        x[[i]] <- x[[i]][x[[i]] > th]
+    }
+    len <- sapply(x, length)
+    pool <- cbind(rep(1:wmax, len), as.numeric(unlist(sapply(x, names))), unlist(x))
+    rownames(pool) <- NULL
+    colnames(pool) <- c("win", "pos", "score")
+    pool <- pool[order(pool[, 3], decreasing = TRUE), ]
+    end <- pool[, "pos"] + pool[, "win"] - 1
+    pool <- cbind(pool[, 1:2], end, pool[, 3])
+    colnames(pool) <- c("win", "pos", "end", "score")
+    ch.regions <- list()
+    while(nrow(pool) > 0) {
+        ch.regions[[length(ch.regions) + 1]] <- pool[1, ]
+        start <- pool[1, 2]
+        end <- pool[1, 3]
+        cond1 <- pool[, 2] <= end
+        cond2 <- start <= pool[, 3]
+        cond <- cond1 & cond2
+        pool <- pool[-which(cond), , drop = FALSE]
+        cat(nrow(pool), "regions remaining in the pool!\n")
+    }
+    res <- do.call(rbind, ch.regions)
+    colnames(res) <- c("win", "pos", "end", "score")
+    return(res)
+}
+
+## function for finding the local maximum of the D statistics given the window sizes
+localmax.D <- function(x, h) {
+    n.win <- length(h)
+    T <- ncol(x)
+    if(n.win != nrow(x)) stop("Error: ncol(x) != length(h)\n")
+    cp <- list()
+    for(i in 1:n.win) {
+        hh <- h[i]
+        is.max <- rep(FALSE, T - 2 * hh)
+        for(j in (hh + 1):(T - hh)) {
+            if((hh + 1) == which.max(x[i, (j - hh):(j + hh)])) is.max[j - hh] <- TRUE
+        }
+        cp[[i]] <- which(is.max) + hh
+    }
+    return(cp)
+}
+
+## calculate the U matrix for the given regions
+calc.U.region <- function(x, region) {
+    N <- nrow(x)
+    T <- ncol(x)
+    R <- nrow(region)
+    Umat <- matrix(NA, N, R)
+    means <- rowMeans(x)
+    sds <- apply(x, 1, sd)
+    for(i in 1:R) {
+        start <- region[i, "pos"]
+        end <- region[i, "end"]
+        l <- region[i, "win"]
+        if(start == end) {
+            U <- x[, start]
+        } else {
+            U <- rowSums(x[, start:end])
+        }
+        Umat[, i] <- (U - l * means)/(l * (1 - l/T))/sds
+    }
+    return(Umat)
+}
