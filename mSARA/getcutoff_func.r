@@ -5,8 +5,8 @@ U.WSum.cutoff <- function(pval, T, T0=1, T1, N, p0){
     u^2 * exp(u^2/2)/(ALPHA + exp(u^2/2))/2
   }
   g.moments <- computeMoments(g, 0)
-  cutoff.scale <- getCutoffMultisampleWeightedChisq(pval, T, T0/T, T1, N, ALPHA)
-  cutoff.original <- cutoff.scale * sqrt(N * g.moments$psidotdot) + g.moments$psidot * N
+  cutoff.scaled <- getCutoffMultisampleWeightedChisq(pval, T, T0/T, T1, N, ALPHA)
+  cutoff.original <- cutoff.scaled * sqrt(N * g.moments$psidotdot) + g.moments$psidot * N
   return(cutoff.original)
 }
 
@@ -390,3 +390,7 @@ vu<-function(x,maxn=1000,do.approx=(abs(x)<0.2)){
     vux
 }
 
+
+num.over <- function(x, threshold){
+  sum(x > threshold, na.rm = TRUE)
+}

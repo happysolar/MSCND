@@ -181,21 +181,42 @@ thres.U <- function(x, th) {
     return(res)
 }
 
-## function for finding the local maximum of the D statistics given the window sizes
-localmax.D <- function(x, h) {
+## function for finding the local maximum of the D statistics given the window sizes, than threshold by a given value
+localmax.D <- function(x, h, th) {
     n.win <- length(h)
     T <- ncol(x)
     if(n.win != nrow(x)) stop("Error: ncol(x) != length(h)\n")
+    if(n.win != length(th)) stop("Error: length(th) != length(h)\n")
     cp <- list()
     for(i in 1:n.win) {
         hh <- h[i]
         is.max <- rep(FALSE, T - 2 * hh)
         for(j in (hh + 1):(T - hh)) {
-            if((hh + 1) == which.max(x[i, (j - hh):(j + hh)])) is.max[j - hh] <- TRUE
+            if((hh + 1) == which.max(x[i, (j - hh):(j + hh)]) && x[i, j] > th[i]) is.max[j - hh] <- TRUE
         }
         cp[[i]] <- which(is.max) + hh
     }
     return(cp)
+}
+
+## calculate the D matrix for the given change point
+calc.D.chp <- function(x, chp, h) {
+    n.win <- length(h)
+    if(length(chp) != n.win) stop("Error: length(chp) != n.win\n")
+    N <- nrow(x)
+    sds <- estimate.sd(x)
+    D <- list()
+    for (i in 1:n.win){
+      hh <- h[i]
+      n.chp <- length(chp[[i]])
+      D.chp <- matrix(NA, N, n.chp)
+      xx <- cbind(matrix(0, ncol = hh - 1, nrow = N), x, matrix(0, ncol = hh, nrow = N))
+      for (j in 1:n.chp) {
+        D.chp[, j] <- rowMeans(xx[, chp[[i]][j] + c(0:(hh - 1))]) - rowMeans(xx[, chp[[i]][j] + c(hh:(2 * hh - 1))])
+      }
+      D[[i]] <- D.chp/sds * sqrt(hh/2)
+    }
+    return(D)
 }
 
 ## calculate the U matrix for the given regions
