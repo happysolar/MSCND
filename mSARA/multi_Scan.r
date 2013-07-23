@@ -240,3 +240,83 @@ calc.U.region <- function(x, region) {
     }
     return(Umat)
 }
+
+## calculate the BIC
+get.one.BIC <- function(x, cp, mod = FALSE) {
+  T <- length(x)
+  cp <- setdiff(cp, T)
+  J <- length(cp)
+  
+  start <- c(1, cp + 1)
+  end <- c(cp, T)
+  len <- end - start + 1
+  means <- rep(NA, J + 1)
+  for (i in 1:(J + 1)) {
+    means[i] <- mean(x[start[i]:end[i]])
+  }
+  SST <- sum(x^2)
+  sigma2 <- (SST - sum(len * means^2))/T
+
+  if (mod) {
+    bic <- T/2 * log(sigma2) + 3/2 * J * log(T) + 1/2 * sum(log(len/T))
+  } else {
+    bic <- T/2 * log(sigma2) + J * log(T)
+  }
+  return(list(bic = bic, means = means, len = len, SST = SST, cp = cp, mod = mod))
+}
+
+get.all.BICs <- function(x, cp, mod = FALSE) {
+  N <- nrow(x)
+  if (length(cp) != N) stop("length(cp) != nrow(x)\n")
+  bic <- rep(NA, N)
+  for(i in 1:N) {
+    bic[i] <- get.one.BIC(x[i, ], cp[[i]])
+  }
+  return(bic)
+}
+
+remove.one.Change.Point <- function(BIC) {
+  T <- sum(BIC$len)
+  J <- length(BIC$len) - 1
+  if(J < 1) stop("No change point left!\n")
+  if (BIC$mod) {
+    delta.term3 <- rep(NA, J)
+    for (i in 1:J) {
+      delta.term3[i] <- 1/2 * (log((BIC$len[i] + BIC$len[i + 1])/T) - sum(log(BIC$len[i:(i + 1)]/T)))
+    }
+    delta0 <- -3/2 * log(T) + delta.term3[i]
+  } else {
+    delta0 <- -log(T)
+  }
+  s2 <- (BIC$SST - sum(BIC$len * BIC$means^2))/T
+  delta1 <- rep(NA, J)
+  for(i in 1:J) {
+    means.temp <- BIC$means
+    means.temp[i] <- means.temp[i + 1] <- (BIC$means[i] * BIC$len[i] + BIC$means[i + 1] * BIC$len[i + 1])/sum(BIC$len[i:(i + 1)])
+    s2.new <- (BIC$SST - sum(BIC$len * means.temp^2))/T
+    delta1[i] <- T/2 * (log(s2.new) - log(s2))
+  }
+  delta <- delta0 + delta1
+  bic <- BIC$bic + delta
+  bic.new <- min(bic)
+  cp.remove <- which.min(bic)
+  len.new <- BIC$len[-cp.remove]
+  len.new[cp.remove] <- BIC$len[cp.remove] + BIC$len[cp.remove + 1]
+  means.new <- BIC$means[-cp.remove]
+  means.new[cp.remove] <- (BIC$means[cp.remove] * BIC$len[cp.remove] + BIC$means[cp.remove + 1] * BIC$len[cp.remove + 1])/sum(BIC$len[cp.remove:(cp.remove + 1)])
+  BIC.new <- list(bic = bic.new, means = means.new, len = len.new, SST = BIC$SST, mod = BIC$mod, cp = BIC$cp[-cp.remove])
+  return(list(BIC.new = BIC.new, cp.remove = cp.remove, delta = delta))
+}
+
+iterative.remove.cp <- function(BIC) {
+  try <- TRUE
+  while (try && length(BIC$cp) > 0) {
+    BIC.next <- remove.one.Change.Point(BIC)
+    if (min(BIC.next$delta) < 0) {
+      BIC <- BIC.next$BIC
+    } else {
+      try <- FALSE
+    }
+  }
+  return(BIC)
+}
