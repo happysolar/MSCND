@@ -320,3 +320,4 @@ iterative.remove.cp <- function(BIC) {
   }
   return(BIC)
 }
+
